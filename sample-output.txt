@@ -1,0 +1,119 @@
+4f-Application Identifier (AID) – card: (7 byte)
+  xx xx xx xx xx xx xx
+
+50-Application Label: (10 byte)
+  xxxxxxxxxx
+
+9f12-Application Preferred Name: (10 byte)
+  xxxxxxxxxx
+
+87-Application Priority Indicator: (1 byte)
+  xx
+
+9f38-Processing Options Data Object List (PDOL): (6 byte)
+  xx xx xx xx xx xx
+
+82-Application Interchange Profile: (2 byte)
+  xx xx
+
+94-Application File Locator (AFL): (8 byte)
+  xx xx xx xx xx xx xx xx
+
+70-EMV Proprietary Template: (65 byte)
+  9f1f-Track 1 Discretionary Data: (24 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx
+  57-Track 2 Equivalent Data: (19 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+  5f20-Cardholder Name: (14 byte)
+    xxxxxxxxxxxxxx
+
+70-EMV Proprietary Template: (136 byte)
+  5f24-Application Expiration Date: (3 byte)
+    xx xx xx
+  5f25-Application Effective Date: (3 byte)
+    xx xx xx
+  5a-Application Primary Account Number (PAN): (8 byte)
+    xx xx xx xx xx xx xx xx
+  5f34-Application Primary Account Number (PAN) Sequence Number: (1 byte)
+    xx
+  9f07-Application Usage Control: (2 byte)
+    xx xx
+  8e-Cardholder Verification Method (CVM) List: (22 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx
+  9f0d-Issuer Action Code – Default: (5 byte)
+    xx xx xx xx xx
+  9f0e-Issuer Action Code – Denial: (5 byte)
+    xx xx xx xx xx
+  9f0f-Issuer Action Code – Online: (5 byte)
+    xx xx xx xx xx
+  5f28-Issuer Country Code: (2 byte)
+    xx xx
+  9f4a-Static Data Authentication Tag List: (1 byte)
+    xx
+  8c-Card Risk Management Data Object List 1 (CDOL1): (21 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx
+  8d-Card Risk Management Data Object List 2 (CDOL2): (23 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx
+
+70-EMV Proprietary Template: (25 byte)
+  9f42-Application Currency Code: (2 byte)
+    xx xx
+  9f44-Application Currency Exponent: (1 byte)
+    xx
+  9f08-Application Version Number: (2 byte)
+    xx xx
+  5f30-Service Code: (2 byte)
+    xx xx
+  9f49-Dynamic Data Authentication Data Object List(DDOL): (3 byte)
+    xx xx xx
+
+70-EMV Proprietary Template: (45 byte)
+  8f-Certification Authority Public Key Index: (1 byte)
+    xx
+  9f32-Issuer Public Key Exponent: (1 byte)
+    xx
+  92-Issuer Public Key Remainder: (36 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+
+70-EMV Proprietary Template: (147 byte)
+  90-Issuer Public Key Certificate: (144 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx
+
+70-EMV Proprietary Template: (165 byte)
+  9f46-Integrated Circuit Card (ICC) Public Key Certificate: (144 byte)
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
+    xx xx xx xx
+  9f47-Integrated Circuit Card (ICC) Public Key Exponent: (1 byte)
+    xx
+  9f48-Integrated Circuit Card (ICC) Public Key Remainder: (10 byte)
+    xx xx xx xx xx xx xx xx xx xx
+
+9f36-Application Transaction Counter (ATC): (2 byte)
+  xx xx
+
+9f17-Personal Identification Number (PIN) Try Counter: (1 byte)
+  xx
+
+9f13-Last Online Application Transaction Counter (ATC) Register: (2 byte)
+  xx xx
+
+9f4f-Log Format: (16 byte)
+  xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
