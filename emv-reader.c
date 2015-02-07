@@ -164,6 +164,8 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
     return false;
   }
 
+  free(readers);
+
   // Get protocol
   SCARD_IO_REQUEST send_pci;
   switch (active_protocol) {
@@ -267,7 +269,7 @@ void print_tlv_recursive(const tlv_t *current, int level) {
     get_hex(current->value, current->length, hex);
 
     if (current->tag == 0x50 || current->tag == 0x5F20 || current->tag == 0x9F12) { // Special
-      printf("%*s  %.*s\n", level * 2, "", current->length, current->value);
+      printf("%*s  s:\"%.*s\"\n", level * 2, "", current->length, current->value);
     } else {
       int wrap_width = 20;
       for (int i=0; i<current->length; i++) {

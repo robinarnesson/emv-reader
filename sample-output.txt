@@ -2,10 +2,10 @@
   xx xx xx xx xx xx xx
 
 50-Application Label: (10 byte)
-  xxxxxxxxxx
+  s:"xxxxxxxxxx"
 
 9f12-Application Preferred Name: (10 byte)
-  xxxxxxxxxx
+  s:"xxxxxxxxxx"
 
 87-Application Priority Indicator: (1 byte)
   xx
@@ -26,7 +26,7 @@
   57-Track 2 Equivalent Data: (19 byte)
     xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx
   5f20-Cardholder Name: (14 byte)
-    xxxxxxxxxxxxxx
+    s:"xxxxxxxxxxxxxx"
 
 70-EMV Proprietary Template: (136 byte)
   5f24-Application Expiration Date: (3 byte)
