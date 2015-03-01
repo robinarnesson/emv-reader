@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <PCSC/winscard.h>
 #include "lists.h"
 
@@ -23,6 +24,12 @@ typedef struct {
   uint8_t data[512];
   uint8_t length;
 } apdu_resp_t;
+
+// Chip reader structure
+typedef struct {
+  SCARDHANDLE handle;
+  SCARD_IO_REQUEST io_request;
+} reader_t;
 
 // TLV structure (Tag Length Value), EMV_v4.3_Book_3 Annex B
 typedef struct {
@@ -51,8 +58,6 @@ const uint16_t EMV_GET_RESPONSE = 0x00C0; // EMV_v4.3_Book_1 9.3.1.3
 const uint16_t EMV_SW_SUCCESS   = 0x9000;
 const uint16_t EMV_SW_NOT_FOUND = 0x6A83;
 
-const bool DEBUG = false;
-
 // Check if tag is two bytes long, EMV_v4.3_Book_3 Annex B1
 bool tag_is_two_bytes(uint8_t tag_first_byte) {
   return (tag_first_byte & 0x1F) == 0x1F;
@@ -69,12 +74,12 @@ bool is_constructed_object(uint16_t tag) {
 }
 
 // Get a hex-string representation of a byte array
-void get_hex(const uint8_t *data, int data_length, char *hex) {
-  hex[0] = 0;
+void get_hex(const uint8_t *data, size_t data_length, char *out_hex) {
+  out_hex[0] = 0;
   char temp[4];
-  for (int i=0; i<data_length; i++) {
+  for (size_t i=0; i<data_length; i++) {
     sprintf(temp, "%02x ", data[i]);
-    strcat(hex, temp);
+    strcat(out_hex, temp);
   }
 }
 
@@ -86,7 +91,15 @@ uint8_t right_byte(uint16_t bytes) {
   return bytes & 0xFF;
 }
 
-// Extract TLV structure from byte array
+/**
+ * Extract TLV structure from byte array.
+ *
+ * @param data        Byte array
+ * @param data_length Byte array size
+ * @param tag         Which TLV tag to extract from byte array
+ * @param occurrence  Which occurrence of tag to extract, usually 1 (first occurrence)
+ * @param tlv         The TLV struct to load result into
+ */
 void get_tlv(const uint8_t *data, size_t data_length, uint16_t tag, int occurrence, tlv_t *tlv) {
   int index = 0, matches = 0;
   uint16_t current_tag = 0;
@@ -120,8 +133,8 @@ void get_tlv(const uint8_t *data, size_t data_length, uint16_t tag, int occurren
   tlv->length = 0;
 }
 
-// Send APDU to chip
-bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
+// Init chip reader
+bool chip_init(reader_t *reader) {
   // Get context
   SCARDCONTEXT card_context;
   LONG result = SCardEstablishContext(SCARD_SCOPE_SYSTEM, NULL, NULL, &card_context);
@@ -155,10 +168,9 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
 #endif
 
   // Connect
-  SCARDHANDLE card;
   DWORD active_protocol;
   result = SCardConnect(card_context, readers, SCARD_SHARE_SHARED,
-      SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &card, &active_protocol);
+      SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &reader->handle, &active_protocol);
   if (result != SCARD_S_SUCCESS) {
     fprintf(stderr, "%s: %s\n", "SCardConnect", pcsc_stringify_error(result));
     return false;
@@ -167,16 +179,20 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
   free(readers);
 
   // Get protocol
-  SCARD_IO_REQUEST send_pci;
   switch (active_protocol) {
     case SCARD_PROTOCOL_T0:
-      send_pci = *SCARD_PCI_T0;
+      reader->io_request = *SCARD_PCI_T0;
       break;
     case SCARD_PROTOCOL_T1:
-      send_pci = *SCARD_PCI_T1;
+      reader->io_request = *SCARD_PCI_T1;
       break;
   }
 
+  return true;
+}
+
+// Send APDU to chip
+bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp, reader_t *reader) {
   // Create command
   BYTE in[512];
   DWORD in_length = 0;
@@ -191,7 +207,7 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
   }
   in[in_length++] = send->length_expected;
 
-  if (DEBUG) {
+  if (_DEBUG) {
     char hex[1024];
     get_hex((unsigned char*)in, in_length, hex);
     printf("APDU send: %s\n", hex);
@@ -200,13 +216,14 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
   // Run command
   BYTE out[512];
   DWORD out_length = sizeof(out);
-  result = SCardTransmit(card, &send_pci, in, in_length, NULL, out, &out_length);
+  LONG result = SCardTransmit(reader->handle, &reader->io_request, in, in_length, NULL, out,
+      &out_length);
   if (result != SCARD_S_SUCCESS) {
     fprintf(stderr, "%s: %s\n", "SCardTransmit", pcsc_stringify_error(result));
     return false;
   }
 
-  if (DEBUG) {
+  if (_DEBUG) {
     char hex[1024];
     get_hex((unsigned char*)&out, out_length, hex);
     printf("APDU resp: %s\n", hex);
@@ -231,15 +248,16 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp) {
     get.param1 = 0x00;
     get.param2 = 0x00;
     get.length_expected = right_byte(resp->status_word);
-    return apdu_exec(&get, resp);
+    return apdu_exec(&get, resp, reader);
   } else if (left_byte(resp->status_word) == 0x6C) { // Wrong expected length
     send->length_expected = right_byte(resp->status_word);
-    return apdu_exec(send, resp);
+    return apdu_exec(send, resp, reader);
   } else {
     return true;
   }
 }
 
+// Help function for function print_tlv()
 void print_tlv_recursive(const tlv_t *current, int level) {
   printf("%*s%x-%s: (%d byte)\n", level * 2, "", current->tag,
       get_value(current->tag, LIST_TAGS), current->length);
@@ -284,6 +302,7 @@ void print_tlv_recursive(const tlv_t *current, int level) {
   }
 }
 
+// Print TLV structure
 void print_tlv(const tlv_t *tlv) {
   if (!tlv->tag || !tlv->length)
     return;
@@ -294,7 +313,7 @@ void print_tlv(const tlv_t *tlv) {
 }
 
 // Get EMV application using PSE (Payment System Enviroment), EMV_v4.3_Book_1 12.3.2
-bool get_application(emv_app_t *application) {
+bool get_application(emv_app_t *application, reader_t *reader) {
   char PSE[] = "1PAY.SYS.DDF01";
 
   apdu_send_t apdu_send;
@@ -307,7 +326,7 @@ bool get_application(emv_app_t *application) {
   memcpy(apdu_send.data, PSE, strlen(PSE));
 
   apdu_resp_t apdu_resp;
-  if (!apdu_exec(&apdu_send, &apdu_resp))
+  if (!apdu_exec(&apdu_send, &apdu_resp, reader))
     return false;
 
   if (apdu_resp.status_word != EMV_SW_SUCCESS) {
@@ -335,7 +354,7 @@ bool get_application(emv_app_t *application) {
     apdu_send.param2 = 0x04 | (sfi.value[0] << 3);
     apdu_send.length_expected = 0x00;
 
-    if (!apdu_exec(&apdu_send, &apdu_resp))
+    if (!apdu_exec(&apdu_send, &apdu_resp, reader))
       return false;
 
     if (apdu_resp.status_word == EMV_SW_NOT_FOUND)
@@ -386,7 +405,7 @@ bool get_application(emv_app_t *application) {
 }
 
 // Select application and extract PDOL, EMV_v4.3_Book_1 12, EMV_v4.3_Book_3 10.1
-bool select_application(emv_app_t *application) {
+bool select_application(emv_app_t *application, reader_t *reader) {
   apdu_send_t apdu_send;
   apdu_send.class = EMV_SELECT >> 8;
   apdu_send.instruction = EMV_SELECT & 0xFF;
@@ -397,7 +416,7 @@ bool select_application(emv_app_t *application) {
   memcpy(apdu_send.data, application->adf_name.value, application->adf_name.length);
 
   apdu_resp_t apdu_resp;
-  if (!apdu_exec(&apdu_send, &apdu_resp))
+  if (!apdu_exec(&apdu_send, &apdu_resp, reader))
     return false;
 
   if (apdu_resp.status_word != EMV_SW_SUCCESS) {
@@ -422,7 +441,8 @@ bool select_application(emv_app_t *application) {
   return true;
 }
 
-bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length) {
+bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length,
+    reader_t *reader) {
   apdu_send_t apdu_send;
   memset(&apdu_send, 0, sizeof(apdu_send));
   apdu_send.class = EMV_GET_PRC_OPT >> 8;
@@ -456,7 +476,7 @@ bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length
   }
 
   apdu_resp_t apdu_resp;
-  if (!apdu_exec(&apdu_send, &apdu_resp))
+  if (!apdu_exec(&apdu_send, &apdu_resp, reader))
     return false;
 
   if (apdu_resp.status_word != EMV_SW_SUCCESS) {
@@ -510,7 +530,7 @@ bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length
       apdu_send.param2 = 0x04 | sfi;
       apdu_send.length_expected = 0x00;
 
-      if (!apdu_exec(&apdu_send, &apdu_resp))
+      if (!apdu_exec(&apdu_send, &apdu_resp, reader))
         return false;
 
       if (apdu_resp.status_word != EMV_SW_SUCCESS) {
@@ -549,7 +569,7 @@ bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length
     apdu_send.param2 = right_byte(more_tags[i]);
 
     memset(&apdu_resp, 0, sizeof(apdu_resp));
-    if (apdu_exec(&apdu_send, &apdu_resp) && apdu_resp.status_word == EMV_SW_SUCCESS) {
+    if (apdu_exec(&apdu_send, &apdu_resp, reader) && apdu_resp.status_word == EMV_SW_SUCCESS) {
       tlv_t data;
       memset(&data, 0, sizeof(data));
       get_tlv(apdu_resp.data, apdu_resp.length, more_tags[i], 1, &data);
@@ -566,11 +586,26 @@ bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length
   return true;
 }
 
+long int get_time_ms() {
+  struct timeval tp;
+  gettimeofday(&tp, NULL);
+  return tp.tv_sec * 1000 + tp.tv_usec / 1000;
+}
+
 int main(int argc, char **argv) {
+  long int start = get_time_ms();
+
+  // Init reader
+  reader_t reader;
+  memset(&reader, 0, sizeof(reader));
+  chip_init(&reader);
+
+  // Init EMV app
   emv_app_t application;
   memset(&application, 0, sizeof(application));
 
-  if (get_application(&application) && select_application(&application)) {
+  // Get EMV app and select it
+  if (get_application(&application, &reader) && select_application(&application, &reader)) {
     print_tlv(&application.adf_name);
     print_tlv(&application.label);
     print_tlv(&application.preferred_name);
@@ -580,7 +615,8 @@ int main(int argc, char **argv) {
     size_t records_length = 0;
     tlv_t *records = NULL;
 
-    get_records(&application, &records, &records_length);
+    // Read data from card
+    get_records(&application, &records, &records_length, &reader);
 
     if (records != NULL) {
       for (size_t i=0; i<records_length; i++)
@@ -589,6 +625,8 @@ int main(int argc, char **argv) {
       free(records);
     }
   }
+
+  printf("Runtime: %ld ms\n", get_time_ms() - start);
 
   return 0;
 }
