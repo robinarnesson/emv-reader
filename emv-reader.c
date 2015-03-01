@@ -13,7 +13,7 @@ typedef struct {
   uint8_t instruction;
   uint8_t param1;
   uint8_t param2;
-  uint8_t data[512];
+  uint8_t data[255];
   uint8_t length_data;
   uint8_t length_expected;
 } apdu_send_t;
@@ -21,7 +21,7 @@ typedef struct {
 // APDU response structure, EMV_v4.3_Book_3 6.2
 typedef struct {
   uint16_t status_word;
-  uint8_t data[512];
+  uint8_t data[255];
   uint8_t length;
 } apdu_resp_t;
 
@@ -35,7 +35,7 @@ typedef struct {
 typedef struct {
   uint16_t tag;
   uint8_t length;
-  uint8_t value[256];
+  uint8_t value[255];
 } tlv_t;
 
 // EMV application structure, EMV_v4.3_Book_1 12.2.3 table 47
@@ -194,7 +194,7 @@ bool chip_init(reader_t *reader) {
 // Send APDU to chip
 bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp, reader_t *reader) {
   // Create command
-  BYTE in[512];
+  BYTE in[255];
   DWORD in_length = 0;
   in[in_length++] = send->class;
   in[in_length++] = send->instruction;
@@ -214,7 +214,7 @@ bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp, reader_t *reader) {
   }
 
   // Run command
-  BYTE out[512];
+  BYTE out[255];
   DWORD out_length = sizeof(out);
   LONG result = SCardTransmit(reader->handle, &reader->io_request, in, in_length, NULL, out,
       &out_length);
@@ -457,7 +457,7 @@ bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length
     apdu_send.data[0] = 0x83;
     apdu_send.data[1] = 0x00;
   } else {
-    uint8_t data[256];
+    uint8_t data[255];
     uint8_t data_length = 0;
     uint8_t pdol_i = 0;
 
