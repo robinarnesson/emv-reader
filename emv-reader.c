@@ -595,33 +595,33 @@ long int get_time_ms() {
 int main(int argc, char **argv) {
   long int start = get_time_ms();
 
-  // Init reader
   reader_t reader;
   memset(&reader, 0, sizeof(reader));
-  chip_init(&reader);
 
-  // Init EMV app
   emv_app_t application;
   memset(&application, 0, sizeof(application));
 
-  // Get EMV app and select it
-  if (get_application(&application, &reader) && select_application(&application, &reader)) {
+  // Init chip, get EMV app and select it
+  if (chip_init(&reader) &&
+      get_application(&application, &reader) &&
+      select_application(&application, &reader))
+  {
+    // Print EMV app values
     print_tlv(&application.adf_name);
     print_tlv(&application.label);
     print_tlv(&application.preferred_name);
     print_tlv(&application.priority_indicator);
     print_tlv(&application.pdol);
 
-    size_t records_length = 0;
+    // Read data records from card
     tlv_t *records = NULL;
-
-    // Read data from card
+    size_t records_length = 0;
     get_records(&application, &records, &records_length, &reader);
 
+    // Print records
     if (records != NULL) {
       for (size_t i=0; i<records_length; i++)
         print_tlv(&records[i]);
-
       free(records);
     }
   }
