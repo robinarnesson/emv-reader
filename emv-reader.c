@@ -94,11 +94,11 @@ uint8_t right_byte(uint16_t bytes) {
 /**
  * Extract TLV structure from byte array.
  *
- * @param data        Byte array
- * @param data_length Byte array size
- * @param tag         Which TLV tag to extract from byte array
- * @param occurrence  Which occurrence of tag to extract, usually 1 (first occurrence)
- * @param tlv         The TLV struct to load result into
+ * @param data        Byte array.
+ * @param data_length Byte array size.
+ * @param tag         Which TLV tag to extract from byte array.
+ * @param occurrence  Which occurrence of tag to extract, usually 1 (first occurrence).
+ * @param tlv         The TLV struct to load result into.
  */
 void get_tlv(const uint8_t *data, size_t data_length, uint16_t tag, int occurrence, tlv_t *tlv) {
   int index = 0, matches = 0;
@@ -133,7 +133,13 @@ void get_tlv(const uint8_t *data, size_t data_length, uint16_t tag, int occurren
   tlv->length = 0;
 }
 
-// Init chip reader
+/**
+ * Init chip struct.
+ *
+ * @param reader Struct to init.
+ *
+ * @return True on success.
+ */
 bool chip_init(reader_t *reader) {
   // Get context
   SCARDCONTEXT card_context;
@@ -191,7 +197,15 @@ bool chip_init(reader_t *reader) {
   return true;
 }
 
-// Send APDU to chip
+/**
+ * Execute APDU.
+ *
+ * @param send   APDU to execute.
+ * @param resp   APDU response.
+ * @param reader Chip reader struct.
+ *
+ * @return True on success.
+ */
 bool apdu_exec(apdu_send_t *send, apdu_resp_t *resp, reader_t *reader) {
   // Create command
   BYTE in[255];
@@ -312,7 +326,14 @@ void print_tlv(const tlv_t *tlv) {
   printf("\n");
 }
 
-// Get EMV application using PSE (Payment System Enviroment), EMV_v4.3_Book_1 12.3.2
+/**
+ * Get EMV application using PSE (Payment System Enviroment), EMV_v4.3_Book_1 12.3.2.
+ *
+ * @param application Application struct to load result into.
+ * @param reader      Chip reader struct.
+ *
+ * @return True if an application could be retrieved.
+ */
 bool get_application(emv_app_t *application, reader_t *reader) {
   char PSE[] = "1PAY.SYS.DDF01";
 
@@ -404,7 +425,14 @@ bool get_application(emv_app_t *application, reader_t *reader) {
   return false;
 }
 
-// Select application and extract PDOL, EMV_v4.3_Book_1 12, EMV_v4.3_Book_3 10.1
+/**
+ * Select application and extract PDOL, EMV_v4.3_Book_1 12, EMV_v4.3_Book_3 10.1.
+ *
+ * @param application Application to select.
+ * @param reader      Chip reader struct.
+ *
+ * @return True on a successful select.
+ */
 bool select_application(emv_app_t *application, reader_t *reader) {
   apdu_send_t apdu_send;
   apdu_send.class = EMV_SELECT >> 8;
@@ -441,6 +469,16 @@ bool select_application(emv_app_t *application, reader_t *reader) {
   return true;
 }
 
+/**
+ * Read data records from EMV card.
+ *
+ * @param application    The selected application.
+ * @param records        Returned records.
+ * @param records_length Number of returned records.
+ * @param reader         Chip reader struct.
+ *
+ * @return True on success.
+ */
 bool get_records(emv_app_t *application, tlv_t **records, size_t *records_length,
     reader_t *reader) {
   apdu_send_t apdu_send;
